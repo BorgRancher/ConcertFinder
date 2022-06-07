@@ -20,7 +20,7 @@ namespace StumpHub
         {
             public Double Latitude;
             public Double Longitude;
-            const Double nearest = 5.0;
+            private const Double nearest = 5.0;
 
             public Double NearestLatitude()
             {
