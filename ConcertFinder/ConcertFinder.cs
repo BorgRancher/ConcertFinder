@@ -15,14 +15,14 @@ namespace StumpHub
             new Event{ Name = "LadyGaGa", City = "Boston"},
             new Event{ Name = "LadyGaGa", City = "Chicago"},
             new Event{ Name = "LadyGaGa", City = "San Francisco"},
-            new Event{ Name = "LadyGaGa", City = "Washington"}
+            new Event{ Name = "LadyGaGa", City = "Washington DC"}
         };
 
         private static List<City> cities = new List<City>{
             new City{Name = "New York", Coordinate = new Coordinate{ Latitude = 40.730610, Longitude = -73.935242 } },
             new City{Name = "Boston", Coordinate = new Coordinate{ Latitude = 42.361145, Longitude = -71.057083 } },
             new City{Name = "Chicago", Coordinate = new Coordinate{ Latitude = 41.510395, Longitude = -87.644287} },
-            new City{Name = "Washington", Coordinate = new Coordinate{ Latitude = 38.900497, Longitude = -77.007507 } },
+            new City{Name = "Washington DC", Coordinate = new Coordinate{ Latitude = 38.900497, Longitude = -77.007507 } },
             new City{Name = "Los Angeles", Coordinate = new Coordinate{ Latitude = 34.052235, Longitude = -118.243683 } },
             new City{Name = "San Francisco", Coordinate = new Coordinate{ Latitude = 37.773972, Longitude = -122.431297 } },
         };
@@ -66,7 +66,7 @@ namespace StumpHub
             Console.WriteLine("Closest Cites");
             foreach(KeyValuePair<int, String> drive in drivingDistances)
             {
-                Console.WriteLine("{0}\t{1} miles away",drive.Value, drive.Key,2);
+                Console.WriteLine("{0}\t\t{1} miles away",drive.Value, drive.Key,2);
             }
             return drivingDistances;
         }
