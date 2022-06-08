@@ -22,7 +22,7 @@ namespace StumpHub
             new City{Name = "New York", Coordinate = new Coordinate{ Latitude = 40.730610, Longitude = -73.935242 } },
             new City{Name = "Boston", Coordinate = new Coordinate{ Latitude = 42.361145, Longitude = -71.057083 } },
             new City{Name = "Chicago", Coordinate = new Coordinate{ Latitude = 41.510395, Longitude = -87.644287} },
-            new City{Name = "Washington", Coordinate = new Coordinate{ Latitude = 47.751076, Longitude = -120.740135 } },
+            new City{Name = "Washington", Coordinate = new Coordinate{ Latitude = 38.900497, Longitude = -77.007507 } },
             new City{Name = "Los Angeles", Coordinate = new Coordinate{ Latitude = 34.052235, Longitude = -118.243683 } },
             new City{Name = "San Francisco", Coordinate = new Coordinate{ Latitude = 37.773972, Longitude = -122.431297 } },
         };
@@ -30,9 +30,9 @@ namespace StumpHub
         public List<Event> NearestEvents(Customer customer, int numberOfEvents)
         {
             List<Event> eventsFound = new List<Event>();
-            Dictionary<Double, String> closestCities = ClosestCites(customer);
+            SortedDictionary<int, String> closestCities = ClosestCites(customer);
 
-            foreach (KeyValuePair<Double, String> entry in closestCities)
+            foreach (KeyValuePair<int, String> entry in closestCities)
             {
                 List<Event> cityEvents = events.Where(e => e.City == entry.Value).ToList();
                 eventsFound.AddRange(cityEvents);
@@ -45,23 +45,28 @@ namespace StumpHub
         }
 
         
-        private Dictionary<Double, String> ClosestCites(Customer customer)
+        private SortedDictionary<int, String> ClosestCites(Customer customer)
         {
             City start = cities.Where(c => c.Name == customer.City).First();
             List<City> destinations = cities.Where(c => c.Name != customer.City &&
-                Math.Abs(start.Coordinate.NearestLatitude() - c.Coordinate.NearestLatitude()) <= 5 &&
-                Math.Abs(start.Coordinate.NearestLongtitude() - c.Coordinate.NearestLongtitude()) <= 5)
+                Math.Abs(start.Coordinate.NearestLatitude() - c.Coordinate.NearestLatitude()) <= 15 &&
+                Math.Abs(start.Coordinate.NearestLongtitude() - c.Coordinate.NearestLongtitude()) <= 15)
                 .ToList();
 
-            Dictionary<Double, String> drivingDistances = new Dictionary<Double, String>();
-            drivingDistances.Add(0.0, start.Name);
+            SortedDictionary<int, String> drivingDistances = new SortedDictionary<int, String>();
+            drivingDistances.Add(0, start.Name);
 
             foreach (City city in destinations)
             {
                 Double distance = Haversine(start.Coordinate, city.Coordinate, DistanceUnit.Miles);
-                Console.WriteLine(city.Name + "\t" + distance);
-                drivingDistances.Add(distance, city.Name);
+                drivingDistances.Add((int)distance, city.Name);
 
+            }
+
+            Console.WriteLine("Closest Cites");
+            foreach(KeyValuePair<int, String> drive in drivingDistances)
+            {
+                Console.WriteLine("{0}\t{1} miles away",drive.Value, drive.Key,2);
             }
             return drivingDistances;
         }
