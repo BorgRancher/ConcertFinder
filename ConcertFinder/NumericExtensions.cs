@@ -1,5 +1,5 @@
 ﻿using System;
-namespace StumpHub
+namespace StubHub
 {
 	public static class NumericExtensions
 	{

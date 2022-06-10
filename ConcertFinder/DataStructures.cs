@@ -1,11 +1,12 @@
 ﻿using System;
-namespace StumpHub
+namespace StubHub
 {
-	
+
         public struct Event
         {
             public String City;
             public String Name;
+            public Double Price;
         }
 
 
@@ -32,6 +33,13 @@ namespace StumpHub
                 return Math.Round(this.Longitude / nearest) * (int) nearest;
             }
 
+        }
+
+
+        public struct Journey
+        {   
+            public Coordinate start;
+            public Coordinate end;
         }
 
     

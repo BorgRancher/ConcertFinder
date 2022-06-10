@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace StumpHub
+namespace StubHub
 {
     class Program
     {
+       
 
         private static List<Customer> customers = new List<Customer> {
             new Customer { Name = "Angel Lopez", City = "Los Angeles" },
@@ -21,17 +22,19 @@ namespace StumpHub
             ConcertFinder finder = new ConcertFinder();
             foreach (Customer customer in customers)
             {
-                Console.WriteLine( "<< {0} in {1} >>",customer.Name, customer.City);
-                List<Event> myEvents = finder.NearestEvents(customer, 5);
-                Console.WriteLine("Closest Shows:");
-                foreach (Event show in myEvents)
-                {
-                    Console.WriteLine("{0}\t\t{1}", show.Name, show.City);
-                }
-                Console.WriteLine("------------");
+                //Console.WriteLine( "<< {0} in {1} >>",customer.Name, customer.City);
+                //List<Event> myEvents = finder.NearestEvents(customer, 5);
+                //Console.WriteLine("Closest Shows:");
+                //foreach (Event show in myEvents)
+                //{
+                //    Console.WriteLine("{0}\t\t{1}", show.Name, show.City);
+                //}
+                //Console.WriteLine("------------");
+                finder.PrepareCustomerEmail(customer);
             }
 
         }
+
     }
 
 }
