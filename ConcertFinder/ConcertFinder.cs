@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -46,6 +47,8 @@ namespace StubHub
             var shows = pricedEvents.Select(e => new { Distance = getCachedDistance(customer.City, e.City), Event = e, Price = e.Price })
                 .OrderBy(e => e.Distance).ThenBy(e => e.Price).Take(noOfEvents).ToList();
 
+            Console.WriteLine("Shows For: {0} in {1}", customer.Name, customer.City);
+            Console.WriteLine("---------------------------------");
             shows.ForEach(s =>
                 addToEmail(customer, s.Event));
         }
@@ -54,6 +57,8 @@ namespace StubHub
         public void PrepareCustomerEmail(Customer customer)
         {
             // collect all events in  customer city
+            Console.WriteLine("Composing Email For: {0} in {1}", customer.Name, customer.City);
+            Console.WriteLine("---------------------------------");
             closestEvents(customer, 5);
 
         }
@@ -67,7 +72,7 @@ namespace StubHub
         public void addToEmail(Customer customer, Event @event)
         {
             // This left blank
-            Console.WriteLine("{0} {1} - {2} ${3}", customer.Name, @event.City, @event.Name, @event.Price);
+            Console.WriteLine("{0} - {1} ${2}", @event.City, @event.Name, @event.Price);
         }
 
         /**
@@ -76,45 +81,54 @@ namespace StubHub
          */
         private int getCachedDistance(String fromCity, String toCity)
         {
-            if (fromCity == toCity)
-            {
-                return 0;
-            }
             int maxRetries = 5;
             int retries = 0;
             string key = fromCity + toCity;
             int distance = int.MinValue;
-            
-            if (!journeyDistance.TryGetValue(key, out distance))
+
+            Stopwatch lookupTimer = new Stopwatch();
+            lookupTimer.Start();
+            if (fromCity == toCity)
             {
-                do
+                distance = 0;
+            } else
+            {
+                if (!journeyDistance.TryGetValue(key, out distance))
                 {
-                    Console.WriteLine("Using Distance Service");
-                    try
+                    do
                     {
-                        distance = getDistance(fromCity, toCity);
-                    } catch(IOException ioex)
+                        Console.WriteLine("\tUsing Distance Service");
+                        try
+                        {
+                            distance = getDistance(fromCity, toCity);
+                        }
+                        catch (IOException ioex)
+                        {
+                            Console.WriteLine("\tDistance lookup failed: {0}", ioex.Message);
+                            retries++;
+                            distance = int.MaxValue;
+                            Console.WriteLine("\tWaiting {0} seconds...", retries);
+                            Thread.Sleep(1000 * retries); // Linear backoff function
+                        }
+                    } while (retries < maxRetries && distance == int.MaxValue);
+
+
+                    if (distance < int.MaxValue) // Lookup did not throw an exception
                     {
-                        Console.WriteLine("Distance lookup failed: {0}", ioex.Message);
-                        retries++;
-                        distance = int.MaxValue;
-                        Thread.Sleep(100 * retries); // Linear backoff function
+                        journeyDistance.Add(key, distance);
                     }
-                } while (retries < maxRetries && distance == int.MaxValue);
 
-
-                if (distance < int.MaxValue) // Lookup did not throw an exception
-                {
-                    journeyDistance.Add(key, distance);
                 }
-
+                else
+                {
+                    Console.WriteLine("\tCached Distance");
+                }
             }
-            else
-            {
-                Console.WriteLine("Cached Distance");
-            }
+            lookupTimer.Stop();
 
-            Console.WriteLine("{0} to {1} is {2} miles", fromCity, toCity, distance);
+            Console.WriteLine("\t{0} to {1} is {2} miles", fromCity, toCity, distance);
+            Console.WriteLine("\tOperation took {0} ms", lookupTimer.ElapsedMilliseconds);
+
 
             return distance;
         }
@@ -145,6 +159,7 @@ namespace StubHub
                           Math.Cos(pos1.Latitude.ToRadians()) * Math.Cos(pos2.Latitude.ToRadians()) *
                           Math.Sin(lng / 2) * Math.Sin(lng / 2);
             var h2 = 2 * Math.Asin(Math.Min(1, Math.Sqrt(h1)));
+            Thread.Sleep(1000); // simulate network call
             return R * h2;
         }
 
@@ -157,7 +172,7 @@ namespace StubHub
 
             Random rnd = new Random();
             int errorOdds = rnd.Next(1, 100);
-            if (errorOdds >= 90)
+            if (errorOdds >= 80)
             {
                 throw new IOException("Random Exception");
             }
@@ -179,9 +194,14 @@ namespace StubHub
             Random rnd = new Random();
             int priceFactor = rnd.Next(1, 5);
             double price = 50.0 * (double)priceFactor;
-            Console.WriteLine("Price for {0} in {1} is ${2}",@event.Name, @event.City, price);
+            writeDiagnostic(String.Format("Price for {0} in {1} is ${2}",@event.Name, @event.City, price));
             @event.Price = price;
             return @event;
+        }
+
+        private void writeDiagnostic(string message)
+        {
+            Console.WriteLine("\t" + message);
         }
 
     }
