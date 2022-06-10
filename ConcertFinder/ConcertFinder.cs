@@ -98,9 +98,7 @@ namespace StubHub
                         Console.WriteLine("Distance lookup failed: {0}", ioex.Message);
                         retries++;
                         distance = int.MaxValue;
-                        Thread.Sleep(100);
-                        
-
+                        Thread.Sleep(100 * retries); // Linear backoff function
                     }
                 } while (retries < maxRetries && distance == int.MaxValue);
 
@@ -181,7 +179,7 @@ namespace StubHub
             Random rnd = new Random();
             int priceFactor = rnd.Next(1, 5);
             double price = 50.0 * (double)priceFactor;
-            Console.WriteLine("Price is ${0}", price);
+            Console.WriteLine("Price for {0} in {1} is ${2}",@event.Name, @event.City, price);
             @event.Price = price;
             return @event;
         }
