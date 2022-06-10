@@ -37,36 +37,59 @@ namespace StubHub
 
         public void closestEvents(Customer customer, int noOfEvents)
         {
-            // Generate ticket prices once
-            if (pricedEvents.Count == 0)
-            {
-                pricedEvents = events.Select(e => new Event { Name = e.Name, City = e.City, Price = getPrice(e).Price }).ToList();
-            }
+            GenerateEventPrices();
 
             // Get n nearest shows to customer
             var shows = pricedEvents.Select(e => new { Distance = getCachedDistance(customer.City, e.City), Event = e, Price = e.Price })
                 .OrderBy(e => e.Distance).ThenBy(e => e.Price).Take(noOfEvents).ToList();
 
-            Console.WriteLine("Shows For: {0} in {1}", customer.Name, customer.City);
-            Console.WriteLine("---------------------------------");
+            LogShowsHeader(customer);
             shows.ForEach(s =>
                 addToEmail(customer, s.Event));
+            Console.WriteLine();
         }
 
+        private void GenerateEventPrices()
+        {
+            // Generate ticket prices once
+            if (pricedEvents.Count == 0)
+            {
+
+                pricedEvents = events.Select(e => new Event { Name = e.Name, City = e.City, Price = getPrice(e).Price }).ToList();
+            }
+
+        
+        }
 
         public void PrepareCustomerEmail(Customer customer)
         {
             // collect all events in  customer city
-            Console.WriteLine("Composing Email For: {0} in {1}", customer.Name, customer.City);
-            Console.WriteLine("---------------------------------");
+            LogEmailHeader(customer);
             closestEvents(customer, 5);
 
         }
         public void allEventsInCustomerCity(Customer customer)
         {
-            List<Event> customerEvents = events.Where(e => e.City == customer.City).ToList();
-            customerEvents.ForEach(e => addToEmail(customer, e));
+            LogEmailHeader(customer);
+            GenerateEventPrices();
+            List<Event> customerEvents = pricedEvents.Where(e => e.City == customer.City).ToList();
+            LogShowsHeader(customer);
 
+            customerEvents.ForEach(e => addToEmail(customer, e));
+            Console.WriteLine();
+
+        }
+
+        private static void LogEmailHeader(Customer customer)
+        {
+            Console.WriteLine("Composing Email For: {0} in {1}", customer.Name, customer.City);
+            Console.WriteLine("---------------------------------");
+        }
+
+        private static void LogShowsHeader(Customer customer)
+        {
+            Console.WriteLine("Shows For: {0} in {1}", customer.Name, customer.City);
+            Console.WriteLine("---------------------------------");
         }
 
         public void addToEmail(Customer customer, Event @event)
@@ -91,7 +114,8 @@ namespace StubHub
             if (fromCity == toCity)
             {
                 distance = 0;
-            } else
+            }
+            else
             {
                 if (!journeyDistance.TryGetValue(key, out distance))
                 {
@@ -132,8 +156,8 @@ namespace StubHub
 
             return distance;
         }
-           
-       
+
+
 
         /**
          * Haversine is used as a stand-in for the expensive distance call.
@@ -194,7 +218,7 @@ namespace StubHub
             Random rnd = new Random();
             int priceFactor = rnd.Next(1, 5);
             double price = 50.0 * (double)priceFactor;
-            writeDiagnostic(String.Format("Price for {0} in {1} is ${2}",@event.Name, @event.City, price));
+            writeDiagnostic(String.Format("Price for {0} in {1} is ${2}", @event.Name, @event.City, price));
             @event.Price = price;
             return @event;
         }
