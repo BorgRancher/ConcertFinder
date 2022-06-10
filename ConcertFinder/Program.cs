@@ -24,15 +24,12 @@ namespace StubHub
             ConcertFinder finder = new ConcertFinder();
             foreach (Customer customer in customers)
             {
-                //Console.WriteLine( "<< {0} in {1} >>",customer.Name, customer.City);
-                //List<Event> myEvents = finder.NearestEvents(customer, 5);
-                //Console.WriteLine("Closest Shows:");
-                //foreach (Event show in myEvents)
-                //{
-                //    Console.WriteLine("{0}\t\t{1}", show.Name, show.City);
-                //}
-                //Console.WriteLine("------------");
+                // Question 1
+                // finder.allEventsInCustomerCity(customer);
+
+                //Question 2
                 finder.PrepareCustomerEmail(customer);
+
             }
 
         }

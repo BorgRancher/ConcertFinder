@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -36,38 +37,65 @@ namespace StubHub
 
         public void closestEvents(Customer customer, int noOfEvents)
         {
-            // Generate ticket prices once
-            if (pricedEvents.Count == 0)
-            {
-                pricedEvents = events.Select(e => new Event { Name = e.Name, City = e.City, Price = getPrice(e).Price }).ToList();
-            }
+            GenerateEventPrices();
 
             // Get n nearest shows to customer
             var shows = pricedEvents.Select(e => new { Distance = getCachedDistance(customer.City, e.City), Event = e, Price = e.Price })
                 .OrderBy(e => e.Distance).ThenBy(e => e.Price).Take(noOfEvents).ToList();
 
+            LogShowsHeader(customer);
             shows.ForEach(s =>
                 addToEmail(customer, s.Event));
+            Console.WriteLine();
         }
 
+        private void GenerateEventPrices()
+        {
+            // Generate ticket prices once
+            if (pricedEvents.Count == 0)
+            {
+
+                pricedEvents = events.Select(e => new Event { Name = e.Name, City = e.City, Price = getPrice(e).Price }).ToList();
+            }
+
+        
+        }
 
         public void PrepareCustomerEmail(Customer customer)
         {
             // collect all events in  customer city
+            LogEmailHeader(customer);
             closestEvents(customer, 5);
 
         }
         public void allEventsInCustomerCity(Customer customer)
         {
-            List<Event> customerEvents = events.Where(e => e.City == customer.City).ToList();
-            customerEvents.ForEach(e => addToEmail(customer, e));
+            LogEmailHeader(customer);
+            GenerateEventPrices();
+            List<Event> customerEvents = pricedEvents.Where(e => e.City == customer.City).ToList();
+            LogShowsHeader(customer);
 
+            customerEvents.ForEach(e => addToEmail(customer, e));
+            Console.WriteLine();
+
+        }
+
+        private static void LogEmailHeader(Customer customer)
+        {
+            Console.WriteLine("Composing Email For: {0} in {1}", customer.Name, customer.City);
+            Console.WriteLine("---------------------------------");
+        }
+
+        private static void LogShowsHeader(Customer customer)
+        {
+            Console.WriteLine("Shows For: {0} in {1}", customer.Name, customer.City);
+            Console.WriteLine("---------------------------------");
         }
 
         public void addToEmail(Customer customer, Event @event)
         {
             // This left blank
-            Console.WriteLine("{0} {1} - {2} ${3}", customer.Name, @event.City, @event.Name, @event.Price);
+            Console.WriteLine("{0} - {1} ${2}", @event.City, @event.Name, @event.Price);
         }
 
         /**
@@ -76,50 +104,60 @@ namespace StubHub
          */
         private int getCachedDistance(String fromCity, String toCity)
         {
-            if (fromCity == toCity)
-            {
-                return 0;
-            }
             int maxRetries = 5;
             int retries = 0;
             string key = fromCity + toCity;
             int distance = int.MinValue;
-            
-            if (!journeyDistance.TryGetValue(key, out distance))
+
+            Stopwatch lookupTimer = new Stopwatch();
+            lookupTimer.Start();
+            if (fromCity == toCity)
             {
-                do
-                {
-                    Console.WriteLine("Using Distance Service");
-                    try
-                    {
-                        distance = getDistance(fromCity, toCity);
-                    } catch(IOException ioex)
-                    {
-                        Console.WriteLine("Distance lookup failed: {0}", ioex.Message);
-                        retries++;
-                        distance = int.MaxValue;
-                        Thread.Sleep(100 * retries); // Linear backoff function
-                    }
-                } while (retries < maxRetries && distance == int.MaxValue);
-
-
-                if (distance < int.MaxValue) // Lookup did not throw an exception
-                {
-                    journeyDistance.Add(key, distance);
-                }
-
+                distance = 0;
             }
             else
             {
-                Console.WriteLine("Cached Distance");
-            }
+                if (!journeyDistance.TryGetValue(key, out distance))
+                {
+                    do
+                    {
+                        Console.WriteLine("\tUsing Distance Service");
+                        try
+                        {
+                            distance = getDistance(fromCity, toCity);
+                        }
+                        catch (IOException ioex)
+                        {
+                            Console.WriteLine("\tDistance lookup failed: {0}", ioex.Message);
+                            retries++;
+                            distance = int.MaxValue;
+                            Console.WriteLine("\tWaiting {0} seconds...", retries);
+                            Thread.Sleep(1000 * retries); // Linear backoff function
+                        }
+                    } while (retries < maxRetries && distance == int.MaxValue);
 
-            Console.WriteLine("{0} to {1} is {2} miles", fromCity, toCity, distance);
+
+                    if (distance < int.MaxValue) // Lookup did not throw an exception
+                    {
+                        journeyDistance.Add(key, distance);
+                    }
+
+                }
+                else
+                {
+                    Console.WriteLine("\tCached Distance");
+                }
+            }
+            lookupTimer.Stop();
+
+            Console.WriteLine("\t{0} to {1} is {2} miles", fromCity, toCity, distance);
+            Console.WriteLine("\tOperation took {0} ms", lookupTimer.ElapsedMilliseconds);
+
 
             return distance;
         }
-           
-       
+
+
 
         /**
          * Haversine is used as a stand-in for the expensive distance call.
@@ -145,6 +183,7 @@ namespace StubHub
                           Math.Cos(pos1.Latitude.ToRadians()) * Math.Cos(pos2.Latitude.ToRadians()) *
                           Math.Sin(lng / 2) * Math.Sin(lng / 2);
             var h2 = 2 * Math.Asin(Math.Min(1, Math.Sqrt(h1)));
+            Thread.Sleep(1000); // simulate network call
             return R * h2;
         }
 
@@ -157,7 +196,7 @@ namespace StubHub
 
             Random rnd = new Random();
             int errorOdds = rnd.Next(1, 100);
-            if (errorOdds >= 90)
+            if (errorOdds >= 80)
             {
                 throw new IOException("Random Exception");
             }
@@ -179,9 +218,14 @@ namespace StubHub
             Random rnd = new Random();
             int priceFactor = rnd.Next(1, 5);
             double price = 50.0 * (double)priceFactor;
-            Console.WriteLine("Price for {0} in {1} is ${2}",@event.Name, @event.City, price);
+            writeDiagnostic(String.Format("Price for {0} in {1} is ${2}", @event.Name, @event.City, price));
             @event.Price = price;
             return @event;
+        }
+
+        private void writeDiagnostic(string message)
+        {
+            Console.WriteLine("\t" + message);
         }
 
     }
